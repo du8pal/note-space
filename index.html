@@ -46,18 +46,25 @@ async function loadFolders() {
   folders = data || [];
   renderFolders();
 }
-
 function renderFolders() {
   $('folderList').innerHTML =
     '<button class="alt" id="allFolders">전체 노트</button>' +
-    folders.map(f => `
-      <div class="row">
-        <button class="alt" data-folder="${f.id}">${safe(f.name)}</button>
-        <button class="alt" data-rename-folder="${f.id}">이름 변경</button>
-        <button class="alt" data-delete-folder="${f.id}">삭제</button>
-      </div>
-    `).join('');
+    folders.map(f =>
+      `<button class="alt" data-folder="${f.id}">${safe(f.name)}</button>`
+    ).join('');
 
+  $('allFolders').onclick = () => {
+    activeFolder = null;
+    render();
+  };
+
+  document.querySelectorAll('[data-folder]').forEach(b => {
+    b.onclick = () => {
+      activeFolder = b.dataset.folder;
+      render();
+    };
+  });
+}
   $('allFolders').onclick = () => {
     activeFolder = null;
     render();
