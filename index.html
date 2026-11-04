@@ -14,8 +14,8 @@ body{margin:0;background:#f6f5f1;color:#242522;font:15px/1.6 system-ui,sans-seri
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 // 아래 두 값만 본인의 Supabase 프로젝트 값으로 바꾸세요.
-const SUPABASE_URL='YOUR_SUPABASE_URL';
-const SUPABASE_PUBLISHABLE_KEY='YOUR_SUPABASE_PUBLISHABLE_KEY';
+const SUPABASE_URL=https://wffxwivpiglheflhdnlz.supabase.co/rest/v1/;
+const SUPABASE_PUBLISHABLE_KEY=sb_publishable_XUW9NTYnijVTP_xI8BqdVw_viyysINu;
 const $=id=>document.getElementById(id);
 let db,user,notes=[],current=null,signup=false;
 function authView(msg=''){$('auth').classList.remove('hidden');$('workspace').classList.add('hidden');$('message').textContent=msg}
