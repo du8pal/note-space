@@ -241,7 +241,7 @@ $('new').onclick=()=>{
   $('list').classList.add('hidden');
   $('editor').classList.remove('hidden');
   say('새 노트');
-};$('title').value='';$('content').value='';$('list').classList.add('hidden');$('editor').classList.remove('hidden');say('새 노트')};
+};
 $('save').onclick=async()=>{if(await save())alert('저장했어!')};$('back').onclick=async()=>{if(current && (current.isNew||current.id)){if(!await save())return}close()};
 $('delete').onclick=async()=>{if(!current)return;if(current.isNew){close();return}if(!confirm('이 노트를 삭제할까?'))return;let {error}=await db.from('notes').delete().eq('id',current.id);if(error){alert(error.message);return}notes=notes.filter(n=>n.id!==current.id);current=null;close()};
 $('search').oninput=render;$('logout').onclick=async()=>{await db.auth.signOut();user=null;notes=[];authView('로그아웃했어.')};
