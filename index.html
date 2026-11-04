@@ -444,8 +444,36 @@ async function loadAttachments() {
       : `<p>📎 ${safe(file.name)} (열기 실패)</p>`
   ).join('');
 }
-  function open(id){current=notes.find(n=>n.id===id);startPresence();updateEditorPermissions();loadAttachments();loadParticipants();$('title').value=current.title;$('content').value=current.content;$('list').classList.add('hidden');$('editor').classList.remove('hidden');say('마지막 수정: '+new Date(current.updated_at).toLocaleString('ko-KR'))}
-  async function stopPresence() {
+    async function open(id) {
+    current = notes.find(n => n.id === id);
+
+    startPresence();
+    updateEditorPermissions();
+    loadAttachments();
+    loadParticipants();
+
+    $('title').value = current.title;
+
+    ydoc = new Y.Doc();
+    ytext = ydoc.getText('content');
+
+    if (current.yjs_state) {
+      const binary = Uint8Array.from(
+        atob(current.yjs_state),
+        c => c.charCodeAt(0)
+      );
+      Y.applyUpdate(ydoc, binary);
+    } else if (current.content) {
+      ytext.insert(0, current.content);
+    }
+
+    $('content').value = ytext.toString();
+
+    $('list').classList.add('hidden');
+    $('editor').classList.remove('hidden');
+
+    say('마지막 수정: ' + new Date(current.updated_at).toLocaleString('ko-KR'));
+    }
   if (presenceChannel) {
     await db.removeChannel(presenceChannel);
     presenceChannel = null;
