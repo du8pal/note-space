@@ -555,11 +555,60 @@ async function close() {
   $('list').classList.remove('hidden');
   render();
 }
-async function save(){if(!current)return false;let payload={title:$('title').value.trim(),content:$('content').value,updated_at:new Date().toISOString()},res;if(current.isNew)res=await db.from('notes').insert({
-  ...payload,
-  owner_id:user.id,
-  folder_id:activeFolder
-}).select().single();else res=await db.from('notes').update(payload).eq('id',current.id).select().single();if(res.error){alert('저장 실패: '+res.error.message);return false}current=res.data;current.isNew=false;updateEditorPermissions();loadAttachments();notes=notes.filter(n=>n.id!==current.id);notes.unshift(current);say('저장됨');return true}
+async function save() {
+  if (!current) return false;
+
+  const payload = {
+    title: $('title').value.trim(),
+    content: ytext ? ytext.toString() : $('content').value,
+    updated_at: new Date().toISOString()
+  };
+
+  if (ydoc) {
+    const update = Y.encodeStateAsUpdate(ydoc);
+    let binary = '';
+
+    for (let i = 0; i < update.length; i++) {
+      binary += String.fromCharCode(update[i]);
+    }
+
+    payload.yjs_state = btoa(binary);
+  }
+
+  let res;
+
+  if (current.isNew) {
+    res = await db.from('notes').insert({
+      ...payload,
+      owner_id: user.id,
+      folder_id: activeFolder
+    }).select().single();
+  } else {
+    res = await db.from('notes')
+      .update(payload)
+      .eq('id', current.id)
+      .select()
+      .single();
+  }
+
+  if (res.error) {
+    alert('저장 실패: ' + res.error.message);
+    return false;
+  }
+
+  current = res.data;
+  current.isNew = false;
+
+  updateEditorPermissions();
+  await loadAttachments();
+  await loadParticipants();
+
+  notes = notes.filter(n => n.id !== current.id);
+  notes.unshift(current);
+
+  say('저장됨');
+  return true;
+}
 $('fileInput').onchange = async () => {
   if (!current || current.isNew) {
     alert('먼저 노트를 저장해 줘!');
