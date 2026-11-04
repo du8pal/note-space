@@ -549,17 +549,7 @@ $('content').oninput = () => {
 
     say('마지막 수정: ' + new Date(current.updated_at).toLocaleString('ko-KR'));
     }
-  if (presenceChannel) {
-    await db.removeChannel(presenceChannel);
-    presenceChannel = null;
-  }
 
-  onlineUsers = [];
-
-  if ($('onlineList')) {
-    $('onlineList').textContent = '노트를 열면 접속자가 표시돼.';
-  }
-  }
 async function close() {
   await stopPresence();
   $('editor').classList.add('hidden');
