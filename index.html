@@ -214,14 +214,34 @@ function render(){
     (!activeFolder || n.folder_id===activeFolder) &&
     (n.title+' '+n.content).toLowerCase().includes(q)
   );$('notes').innerHTML=a.length?a.map(n=>`<button class="note" data-id="${n.id}"><b>${safe(n.title||'제목 없는 노트')}</b><p class="muted">${safe(n.content)}</p><small class="muted">${new Date(n.updated_at).toLocaleString('ko-KR')}</small></button>`).join(''):'<p class="muted">아직 노트가 없어. 새 노트를 만들어 봐.</p>';document.querySelectorAll('.note').forEach(b=>b.onclick=()=>open(b.dataset.id))}
-function open(id){current=notes.find(n=>n.id===id);$('title').value=current.title;$('content').value=current.content;$('list').classList.add('hidden');$('editor').classList.remove('hidden');say('마지막 수정: '+new Date(current.updated_at).toLocaleString('ko-KR'))}
+function updateEditorPermissions() {
+  const isSaved = current && !current.isNew;
+  const isOwner = isSaved && current.owner_id === user.id;
+
+  $('share').classList.toggle('hidden', !isOwner);
+  $('delete').classList.toggle('hidden', isSaved && !isOwner);
+}
+  function open(id){current=notes.find(n=>n.id===id);updateEditorPermissions();$('title').value=current.title;$('content').value=current.content;$('list').classList.add('hidden');$('editor').classList.remove('hidden');say('마지막 수정: '+new Date(current.updated_at).toLocaleString('ko-KR'))}
 function close(){ $('editor').classList.add('hidden');$('list').classList.remove('hidden');render()}
 async function save(){if(!current)return false;let payload={title:$('title').value.trim(),content:$('content').value,updated_at:new Date().toISOString()},res;if(current.isNew)res=await db.from('notes').insert({
   ...payload,
   owner_id:user.id,
   folder_id:activeFolder
 }).select().single();else res=await db.from('notes').update(payload).eq('id',current.id).select().single();if(res.error){alert('저장 실패: '+res.error.message);return false}current=res.data;current.isNew=false;notes=notes.filter(n=>n.id!==current.id);notes.unshift(current);say('저장됨');return true}
-$('new').onclick=()=>{current={isNew:true};$('title').value='';$('content').value='';$('list').classList.add('hidden');$('editor').classList.remove('hidden');say('새 노트')};
+$('new').onclick=()=>{
+  current={
+    isNew:true,
+    owner_id:user.id
+  };
+
+  $('title').value='';
+  $('content').value='';
+  updateEditorPermissions();
+
+  $('list').classList.add('hidden');
+  $('editor').classList.remove('hidden');
+  say('새 노트');
+};$('title').value='';$('content').value='';$('list').classList.add('hidden');$('editor').classList.remove('hidden');say('새 노트')};
 $('save').onclick=async()=>{if(await save())alert('저장했어!')};$('back').onclick=async()=>{if(current && (current.isNew||current.id)){if(!await save())return}close()};
 $('delete').onclick=async()=>{if(!current)return;if(current.isNew){close();return}if(!confirm('이 노트를 삭제할까?'))return;let {error}=await db.from('notes').delete().eq('id',current.id);if(error){alert(error.message);return}notes=notes.filter(n=>n.id!==current.id);current=null;close()};
 $('search').oninput=render;$('logout').onclick=async()=>{await db.auth.signOut();user=null;notes=[];authView('로그아웃했어.')};
