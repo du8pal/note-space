@@ -27,7 +27,22 @@ body{margin:0;background:#f6f5f1;color:#242522;font:15px/1.6 system-ui,sans-seri
     <button class="alt" id="delete">삭제</button>
     <button id="save">저장</button>
   </div>
-</div><input id="title" placeholder="제목 없는 노트"><textarea id="content" placeholder="생각이나 자료를 기록해 봐."></textarea><p id="saved" class="muted"></p></div></section>
+</div><input id="title" placeholder="제목 없는 노트"><textarea id="content" placeholder="생각이나 자료를 기록해 봐."></textarea>
+
+<div class="card">
+  <h3>📎 첨부 파일</h3>
+  <input
+    id="fileInput"
+    type="file"
+    accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt"
+    multiple
+  >
+  <div id="attachmentList" class="muted">
+    아직 첨부 파일이 없어.
+  </div>
+</div>
+
+<p id="saved" class="muted"></p></div></section>
 </div>
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
@@ -221,14 +236,89 @@ function updateEditorPermissions() {
   $('share').classList.toggle('hidden', !isOwner);
   $('delete').classList.toggle('hidden', isSaved && !isOwner);
 }
-  function open(id){current=notes.find(n=>n.id===id);updateEditorPermissions();$('title').value=current.title;$('content').value=current.content;$('list').classList.add('hidden');$('editor').classList.remove('hidden');say('마지막 수정: '+new Date(current.updated_at).toLocaleString('ko-KR'))}
+ async function loadAttachments() {
+  const list = $('attachmentList');
+
+  if (!current || current.isNew) {
+    list.textContent = '노트를 먼저 저장해 줘.';
+    return;
+  }
+
+  list.textContent = '첨부 파일 불러오는 중...';
+
+  const { data, error } = await db.storage
+    .from('note-files')
+    .list(current.id);
+
+  if (error) {
+    list.textContent = '파일 불러오기 실패: ' + error.message;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    list.textContent = '아직 첨부 파일이 없어.';
+    return;
+  }
+
+  const files = await Promise.all(
+    data.map(async file => {
+      const path = current.id + '/' + file.name;
+
+      const { data: signed, error } = await db.storage
+        .from('note-files')
+        .createSignedUrl(path, 3600);
+
+      return {
+        name: file.name,
+        url: error ? null : signed.signedUrl
+      };
+    })
+  );
+
+  list.innerHTML = files.map(file =>
+    file.url
+      ? `<p>📎 <a href="${safe(file.url)}" target="_blank" rel="noopener noreferrer">${safe(file.name)}</a></p>`
+      : `<p>📎 ${safe(file.name)} (열기 실패)</p>`
+  ).join('');
+ }
+  function open(id){current=notes.find(n=>n.id===id);updateEditorPermissions();loadAttachments();$('title').value=current.title;$('content').value=current.content;$('list').classList.add('hidden');$('editor').classList.remove('hidden');say('마지막 수정: '+new Date(current.updated_at).toLocaleString('ko-KR'))}
 function close(){ $('editor').classList.add('hidden');$('list').classList.remove('hidden');render()}
 async function save(){if(!current)return false;let payload={title:$('title').value.trim(),content:$('content').value,updated_at:new Date().toISOString()},res;if(current.isNew)res=await db.from('notes').insert({
   ...payload,
   owner_id:user.id,
   folder_id:activeFolder
-}).select().single();else res=await db.from('notes').update(payload).eq('id',current.id).select().single();if(res.error){alert('저장 실패: '+res.error.message);return false}current=res.data;current.isNew=false;updateEditorPermissions();notes=notes.filter(n=>n.id!==current.id);notes.unshift(current);say('저장됨');return true}
-$('new').onclick=()=>{
+}).select().single();else res=await db.from('notes').update(payload).eq('id',current.id).select().single();if(res.error){alert('저장 실패: '+res.error.message);return false}current=res.data;current.isNew=false;updateEditorPermissions();loadAttachments();notes=notes.filter(n=>n.id!==current.id);notes.unshift(current);say('저장됨');return true}
+$('fileInput').onchange = async () => {
+  if (!current || current.isNew) {
+    alert('먼저 노트를 저장해 줘!');
+    $('fileInput').value = '';
+    return;
+  }
+
+  const files = Array.from($('fileInput').files || []);
+
+  for (const file of files) {
+    if (file.size > 20 * 1024 * 1024) {
+      alert(file.name + '은 20MB를 초과해서 업로드할 수 없어.');
+      continue;
+    }
+
+    const fileName = file.name.replace(/[\/\\]/g, '_');
+    const path = current.id + '/' + crypto.randomUUID() + '-' + fileName;
+
+    const { error } = await db.storage
+      .from('note-files')
+      .upload(path, file, { upsert: false });
+
+    if (error) {
+      alert(file.name + ' 업로드 실패: ' + error.message);
+    }
+  }
+
+  $('fileInput').value = '';
+  await loadAttachments();
+};
+  $('new').onclick=()=>{
   current={
     isNew:true,
     owner_id:user.id
