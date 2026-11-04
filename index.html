@@ -78,7 +78,7 @@ let onlineUsers = [];
 
 async function startPresence() {
   if (!current || current.isNew || !user) return;
-
+async function stopPresence() {
   if (presenceChannel) {
     await db.removeChannel(presenceChannel);
     presenceChannel = null;
