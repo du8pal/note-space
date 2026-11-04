@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NOTE</title>
+<style>
+body{margin:0;background:#f6f5f1;color:#242522;font:15px/1.6 system-ui,sans-serif}.app{max-width:980px;margin:30px auto;padding:16px}.brand{font-weight:900;letter-spacing:.15em;margin-bottom:30px}.card{background:white;border:1px solid #e8e7e1;border-radius:16px;padding:24px;margin-bottom:16px}.auth{max-width:420px;margin:8vh auto}.field{margin:14px 0}.field label{display:block;font-size:13px}.field input{width:100%;padding:12px;border:1px solid #ddd;border-radius:9px;box-sizing:border-box}button{border:0;border-radius:9px;padding:10px 14px;background:#303b35;color:white;cursor:pointer;margin:4px}button.alt{background:#eef0eb;color:#242522}textarea,input{font:inherit}.hidden{display:none!important}.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.note{background:white;color:#242522;border:1px solid #e8e7e1;text-align:left;min-height:120px;width:100%}.muted{color:#85877f;font-size:13px}#title{width:100%;font-size:24px;font-weight:bold;border:0;margin:20px 0;outline:0}#content{width:100%;min-height:55vh;border:0;outline:0;resize:vertical;line-height:1.8}.row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+</style></head><body><div class="app"><div class="brand">NOTE <span class="muted">your shared space</span></div>
+<section id="auth" class="card auth"><h1 id="authTitle">NOTE에 로그인</h1><p class="muted">나만의 자료실을 시작해 봐.</p>
+<div class="field"><label>이메일</label><input id="email" type="email" autocomplete="email" placeholder="you@example.com"></div>
+<div class="field"><label>비밀번호</label><input id="password" type="password" autocomplete="current-password" placeholder="6자 이상"></div>
+<button id="submit">로그인</button><button class="alt" id="switch">계정이 없나요? 회원가입</button><p id="message" class="muted"></p></section>
+<section id="workspace" class="hidden"><div class="row"><h1>나의 자료실</h1><div><button class="alt" id="logout">로그아웃</button><button id="new">＋ 새 노트</button></div></div>
+<div id="list"><input id="search" placeholder="노트 검색" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:9px;box-sizing:border-box;margin-bottom:14px"><div id="notes" class="notes"></div></div>
+<div id="editor" class="card hidden"><div class="row"><button class="alt" id="back">← 목록</button><div><button class="alt" id="delete">삭제</button><button id="save">저장</button></div></div><input id="title" placeholder="제목 없는 노트"><textarea id="content" placeholder="생각이나 자료를 기록해 봐."></textarea><p id="saved" class="muted"></p></div></section>
+</div>
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+// 아래 두 값만 본인의 Supabase 프로젝트 값으로 바꾸세요.
+const SUPABASE_URL='YOUR_SUPABASE_URL';
+const SUPABASE_PUBLISHABLE_KEY='YOUR_SUPABASE_PUBLISHABLE_KEY';
+const $=id=>document.getElementById(id);
+let db,user,notes=[],current=null,signup=false;
+function authView(msg=''){$('auth').classList.remove('hidden');$('workspace').classList.add('hidden');$('message').textContent=msg}
+function workView(){$('auth').classList.add('hidden');$('workspace').classList.remove('hidden')}
+function say(s){$('saved').textContent=s}
+function safe(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+$('switch').onclick=()=>{signup=!signup;$('authTitle').textContent=signup?'회원가입':'NOTE에 로그인';$('submit').textContent=signup?'회원가입':'로그인';$('switch').textContent=signup?'이미 계정이 있나요? 로그인':'계정이 없나요? 회원가입';$('message').textContent=''};
+$('submit').onclick=async()=>{let email=$('email').value.trim(),password=$('password').value;if(!email||password.length<6){$('message').textContent='이메일과 6자 이상의 비밀번호를 입력해 줘.';return}
+$('submit').disabled=true;try{if(signup){let {data,error}=await db.auth.signUp({email,password});if(error)throw error;if(data.session){user=data.user;workView();await load()}else $('message').textContent='가입 요청 완료! 이메일 인증 후 로그인해 줘.'}else{let {data,error}=await db.auth.signInWithPassword({email,password});if(error)throw error;user=data.user;workView();await load()}}catch(e){$('message').textContent=e.message}finally{$('submit').disabled=false}};
+async function load(){let {data,error}=await db.from('notes').select('*').order('updated_at',{ascending:false});if(error){alert('불러오기 실패: '+error.message);return}notes=data||[];render()}
+function render(){let q=$('search').value.toLowerCase(),a=notes.filter(n=>(n.title+' '+n.content).toLowerCase().includes(q));$('notes').innerHTML=a.length?a.map(n=>`<button class="note" data-id="${n.id}"><b>${safe(n.title||'제목 없는 노트')}</b><p class="muted">${safe(n.content)}</p><small class="muted">${new Date(n.updated_at).toLocaleString('ko-KR')}</small></button>`).join(''):'<p class="muted">아직 노트가 없어. 새 노트를 만들어 봐.</p>';document.querySelectorAll('.note').forEach(b=>b.onclick=()=>open(b.dataset.id))}
+function open(id){current=notes.find(n=>n.id===id);$('title').value=current.title;$('content').value=current.content;$('list').classList.add('hidden');$('editor').classList.remove('hidden');say('마지막 수정: '+new Date(current.updated_at).toLocaleString('ko-KR'))}
+function close(){ $('editor').classList.add('hidden');$('list').classList.remove('hidden');render()}
+async function save(){if(!current)return false;let payload={title:$('title').value.trim(),content:$('content').value,updated_at:new Date().toISOString()},res;if(current.isNew)res=await db.from('notes').insert({...payload,owner_id:user.id}).select().single();else res=await db.from('notes').update(payload).eq('id',current.id).select().single();if(res.error){alert('저장 실패: '+res.error.message);return false}current=res.data;current.isNew=false;notes=notes.filter(n=>n.id!==current.id);notes.unshift(current);say('저장됨');return true}
+$('new').onclick=()=>{current={isNew:true};$('title').value='';$('content').value='';$('list').classList.add('hidden');$('editor').classList.remove('hidden');say('새 노트')};
+$('save').onclick=async()=>{if(await save())alert('저장했어!')};$('back').onclick=async()=>{if(current && (current.isNew||current.id)){if(!await save())return}close()};
+$('delete').onclick=async()=>{if(!current)return;if(current.isNew){close();return}if(!confirm('이 노트를 삭제할까?'))return;let {error}=await db.from('notes').delete().eq('id',current.id);if(error){alert(error.message);return}notes=notes.filter(n=>n.id!==current.id);current=null;close()};
+$('search').oninput=render;$('logout').onclick=async()=>{await db.auth.signOut();user=null;notes=[];authView('로그아웃했어.')};
+(async()=>{if(SUPABASE_URL.startsWith('YOUR_')||SUPABASE_PUBLISHABLE_KEY.startsWith('YOUR_')){authView('먼저 Supabase URL과 Publishable key를 코드에 입력해 줘.');$('submit').disabled=true;return}db=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);let {data:{session}}=await db.auth.getSession();if(session){user=session.user;workView();await load()}else authView();db.auth.onAuthStateChange(async(e,s)=>{if(s&&(!user||user.id!==s.user.id)){user=s.user;workView();await load()}else if(!s&&user){user=null;notes=[];authView()}})})();
+</script></body></html>
