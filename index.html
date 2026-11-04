@@ -20,7 +20,14 @@ body{margin:0;background:#f6f5f1;color:#242522;font:15px/1.6 system-ui,sans-seri
 
 <div class="row"><h1>나의 자료실</h1><div><button class="alt" id="logout">로그아웃</button><button id="new">＋ 새 노트</button></div></div>
 <div id="list"><input id="search" placeholder="노트 검색" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:9px;box-sizing:border-box;margin-bottom:14px"><div id="notes" class="notes"></div></div>
-<div id="editor" class="card hidden"><div class="row"><button class="alt" id="back">← 목록</button><div><button class="alt" id="delete">삭제</button><button id="save">저장</button></div></div><input id="title" placeholder="제목 없는 노트"><textarea id="content" placeholder="생각이나 자료를 기록해 봐."></textarea><p id="saved" class="muted"></p></div></section>
+<div id="editor" class="card hidden"><div class="row">
+  <button class="alt" id="back">← 목록</button>
+  <div>
+    <button class="alt" id="share">공유하기</button>
+    <button class="alt" id="delete">삭제</button>
+    <button id="save">저장</button>
+  </div>
+</div><input id="title" placeholder="제목 없는 노트"><textarea id="content" placeholder="생각이나 자료를 기록해 봐."></textarea><p id="saved" class="muted"></p></div></section>
 </div>
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
@@ -126,6 +133,44 @@ $('addFolder').onclick = async () => {
   await loadFolders();
 };
 
+$('share').onclick = async () => {
+  if (!current || current.isNew) {
+    alert('먼저 노트를 저장해 줘.');
+    return;
+  }
+
+  const token = crypto.randomUUID();
+
+  const { error } = await db
+    .from('note_share_invites')
+    .insert({
+      note_id: current.id,
+      token,
+      created_by: user.id,
+      expires_at: new Date(
+        Date.now() + 7 * 24 * 60 * 60 * 1000
+      ).toISOString()
+    });
+
+  if (error) {
+    alert('공유 링크 생성 실패: ' + error.message);
+    return;
+  }
+
+  const link =
+    location.origin +
+    location.pathname +
+    '?invite=' +
+    encodeURIComponent(token);
+
+  try {
+    await navigator.clipboard.writeText(link);
+    alert('공유 링크가 복사됐어! 7일 동안 유효해.');
+  } catch (e) {
+    prompt('아래 링크를 복사해 줘.', link);
+  }
+};
+
 function authView(msg=''){$('auth').classList.remove('hidden');$('workspace').classList.add('hidden');$('message').textContent=msg}
 function workView(){$('auth').classList.add('hidden');$('workspace').classList.remove('hidden')}
 function say(s){$('saved').textContent=s}
@@ -133,7 +178,30 @@ function safe(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&
 $('switch').onclick=()=>{signup=!signup;$('authTitle').textContent=signup?'회원가입':'NOTE에 로그인';$('submit').textContent=signup?'회원가입':'로그인';$('switch').textContent=signup?'이미 계정이 있나요? 로그인':'계정이 없나요? 회원가입';$('message').textContent=''};
 $('submit').onclick=async()=>{let email=$('email').value.trim(),password=$('password').value;if(!email||password.length<6){$('message').textContent='이메일과 6자 이상의 비밀번호를 입력해 줘.';return}
 $('submit').disabled=true;try{if(signup){let {data,error}=await db.auth.signUp({email,password});if(error)throw error;if(data.session){user=data.user;workView();await load()}else $('message').textContent='가입 요청 완료! 이메일 인증 후 로그인해 줘.'}else{let {data,error}=await db.auth.signInWithPassword({email,password});if(error)throw error;user=data.user;workView();await load()}}catch(e){$('message').textContent=e.message}finally{$('submit').disabled=false}};
-async function load(){
+async function acceptInviteFromUrl() {
+  const url = new URL(location.href);
+  const token = url.searchParams.get('invite');
+
+  if (!token) return;
+
+  url.searchParams.delete('invite');
+  history.replaceState({}, '', url.toString());
+
+  const { data, error } = await db.rpc(
+    'accept_note_share_invite',
+    { p_token: token }
+  );
+
+  if (error) {
+    alert('초대 수락 실패: ' + error.message);
+    return;
+  }
+
+  activeFolder = null;
+  alert('공동 편집자로 참여했어!');
+}
+  async function load(){
+    await acceptInviteFromUrl();
   let {data,error}=await db.from('notes').select('*').order('updated_at',{ascending:false});
   if(error){alert('불러오기 실패: '+error.message);return}
   notes=data||[];
