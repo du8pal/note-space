@@ -465,33 +465,87 @@ async function loadAttachments() {
       : `<p>📎 ${safe(file.name)} (열기 실패)</p>`
   ).join('');
 }
-    async function open(id) {
-    current = notes.find(n => n.id === id);
+  async function open(id) {
+  await stopPresence();
 
-    startPresence();
-    updateEditorPermissions();
-    loadAttachments();
-    loadParticipants();
+  const { data, error } = await db
+    .from('notes')
+    .select('*')
+    .eq('id', id)
+    .single();
 
-    $('title').value = current.title;
+  if (error) {
+    alert('노트 열기 실패: ' + error.message);
+    return;
+  }
 
-    ydoc = new Y.Doc();
-    ytext = ydoc.getText('content');
+  current = data;
 
-    if (current.yjs_state) {
-      const binary = Uint8Array.from(
-        atob(current.yjs_state),
-        c => c.charCodeAt(0)
-      );
-      Y.applyUpdate(ydoc, binary);
-    } else if (current.content) {
+  ydoc = new Y.Doc();
+  ytext = ydoc.getText('content');
+
+  if (current.yjs_state) {
+    const binary = Uint8Array.from(
+      atob(current.yjs_state),
+      c => c.charCodeAt(0)
+    );
+
+    Y.applyUpdate(ydoc, binary);
+  } else {
+    if (current.content) {
       ytext.insert(0, current.content);
     }
 
-    $('content').value = ytext.toString();
-      ydoc.on('update', (update, origin) => {
-  if (origin === 'remote') {
-    $('content').value = ytext.toString();
+    const update = Y.encodeStateAsUpdate(ydoc);
+    let binary = '';
+
+    for (let i = 0; i < update.length; i++) {
+      binary += String.fromCharCode(update[i]);
+    }
+
+    const { data: initialized, error: initError } = await db
+      .from('notes')
+      .update({ yjs_state: btoa(binary) })
+      .eq('id', id)
+      .is('yjs_state', null)
+      .select()
+      .maybeSingle();
+
+    if (initError) {
+      alert('실시간 데이터 초기화 실패: ' + initError.message);
+      return;
+    }
+
+    if (initialized) {
+      current = initialized;
+    } else {
+      const { data: latest, error: latestError } = await db
+        .from('notes')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (latestError || !latest?.yjs_state) {
+        alert('공유 데이터를 불러오지 못했어.');
+        return;
+      }
+
+      current = latest;
+      ydoc.destroy();
+      ydoc = new Y.Doc();
+      ytext = ydoc.getText('content');
+
+      const latestBinary = Uint8Array.from(
+        atob(latest.yjs_state),
+        c => c.charCodeAt(0)
+      );
+
+      Y.applyUpdate(ydoc, latestBinary);
+    }
+  }
+
+  $('title').value = current.title || '';
+  $('content').value = ytext.toString();
     return;
   }
 
@@ -548,7 +602,68 @@ $('content').oninput = () => {
 
     say('마지막 수정: ' + new Date(current.updated_at).toLocaleString('ko-KR'));
     }
+  ydoc.on('update', (update, origin) => {
+    if (origin === 'remote') {
+      $('content').value = ytext.toString();
+      return;
+    }
 
+    if (presenceChannel) {
+      presenceChannel.send({
+        type: 'broadcast',
+        event: 'y-update',
+        payload: {
+          update: Array.from(update)
+        }
+      });
+    }
+  });
+
+  $('content').oninput = () => {
+    const oldText = ytext.toString();
+    const newText = $('content').value;
+
+    let start = 0;
+
+    while (
+      start < oldText.length &&
+      start < newText.length &&
+      oldText[start] === newText[start]
+    ) start++;
+
+    let oldEnd = oldText.length;
+    let newEnd = newText.length;
+
+    while (
+      oldEnd > start &&
+      newEnd > start &&
+      oldText[oldEnd - 1] === newText[newEnd - 1]
+    ) {
+      oldEnd--;
+      newEnd--;
+    }
+
+    ydoc.transact(() => {
+      if (oldEnd > start) {
+        ytext.delete(start, oldEnd - start);
+      }
+
+      if (newEnd > start) {
+        ytext.insert(start, newText.slice(start, newEnd));
+      }
+    });
+  };
+
+  updateEditorPermissions();
+  await loadAttachments();
+  await loadParticipants();
+  await startPresence();
+
+  $('list').classList.add('hidden');
+  $('editor').classList.remove('hidden');
+
+  say('마지막 수정: ' + new Date(current.updated_at).toLocaleString('ko-KR'));
+  }
 async function close() {
   await stopPresence();
   $('editor').classList.add('hidden');
