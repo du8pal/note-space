@@ -53,6 +53,10 @@ body{margin:0;background:#f6f5f1;color:#242522;font:15px/1.6 system-ui,sans-seri
   <div id="participantList" class="muted">
     참여자를 불러오는 중...
   </div>
+    <h4>🟢 지금 접속 중</h4>
+<div id="onlineList" class="muted">
+  접속자를 확인하는 중...
+</div>
   </div>
 </div>
 
@@ -65,6 +69,54 @@ const SUPABASE_URL='https://wffxwivpiglheflhdnlz.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_XUW9NTYnijVTP_xI8BqdVw_viyysINu';
 const $=id=>document.getElementById(id);
 let db,user,notes=[],current=null,signup=false;
+  let presenceChannel = null;
+let onlineUsers = [];
+
+async function startPresence() {
+  if (!current || current.isNew || !user) return;
+
+  if (presenceChannel) {
+    await db.removeChannel(presenceChannel);
+    presenceChannel = null;
+  }
+
+  const channel = db.channel('note-presence-' + current.id);
+
+  channel
+    .on('presence', { event: 'sync' }, () => {
+      const state = channel.presenceState();
+      onlineUsers = Object.values(state).flat();
+
+      const uniqueUsers = [
+        ...new Map(
+          onlineUsers.map(person => [person.user_id, person])
+        ).values()
+      ];
+
+      $('onlineList').innerHTML = uniqueUsers.length
+        ? uniqueUsers.map(person =>
+            `<p>🟢 <b>${safe(person.nickname)}</b></p>`
+          ).join('')
+        : '현재 접속자가 없어.';
+    })
+    .subscribe(async status => {
+      if (status === 'SUBSCRIBED') {
+        const { data } = await db
+          .from('profiles')
+          .select('nickname')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        await channel.track({
+          user_id: user.id,
+          nickname: data?.nickname || '익명',
+          online_at: new Date().toISOString()
+        });
+      }
+    });
+
+  presenceChannel = channel;
+}
 let folders = [];
 let activeFolder = null;
 
@@ -388,8 +440,25 @@ async function loadAttachments() {
       : `<p>📎 ${safe(file.name)} (열기 실패)</p>`
   ).join('');
 }
-  function open(id){current=notes.find(n=>n.id===id);updateEditorPermissions();loadAttachments();loadParticipants();$('title').value=current.title;$('content').value=current.content;$('list').classList.add('hidden');$('editor').classList.remove('hidden');say('마지막 수정: '+new Date(current.updated_at).toLocaleString('ko-KR'))}
-function close(){ $('editor').classList.add('hidden');$('list').classList.remove('hidden');render()}
+  function open(id){current=notes.find(n=>n.id===id);startPresence();updateEditorPermissions();loadAttachments();loadParticipants();$('title').value=current.title;$('content').value=current.content;$('list').classList.add('hidden');$('editor').classList.remove('hidden');say('마지막 수정: '+new Date(current.updated_at).toLocaleString('ko-KR'))}
+  async function stopPresence() {
+  if (presenceChannel) {
+    await db.removeChannel(presenceChannel);
+    presenceChannel = null;
+  }
+
+  onlineUsers = [];
+
+  if ($('onlineList')) {
+    $('onlineList').textContent = '노트를 열면 접속자가 표시돼.';
+  }
+  }
+async function close() {
+  await stopPresence();
+  $('editor').classList.add('hidden');
+  $('list').classList.remove('hidden');
+  render();
+}
 async function save(){if(!current)return false;let payload={title:$('title').value.trim(),content:$('content').value,updated_at:new Date().toISOString()},res;if(current.isNew)res=await db.from('notes').insert({
   ...payload,
   owner_id:user.id,
