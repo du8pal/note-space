@@ -70,6 +70,9 @@ const SUPABASE_URL='https://wffxwivpiglheflhdnlz.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_XUW9NTYnijVTP_xI8BqdVw_viyysINu';
 const $=id=>document.getElementById(id);
 let db,user,notes=[],current=null,signup=false;
+  let ydoc = null;
+let ytext = null;
+let applyingRemote = false;
   let presenceChannel = null;
 let onlineUsers = [];
 
