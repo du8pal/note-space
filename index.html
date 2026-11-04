@@ -610,13 +610,21 @@ async function close() {
 let autoSaveTimer;
 
 function scheduleAutoSave() {
+function scheduleAutoSave() {
   clearTimeout(autoSaveTimer);
+
+  if (!current) return;
 
   say('저장 대기 중...');
 
   autoSaveTimer = setTimeout(async () => {
-    if (!current || current.isNew) return;
-    await save();
+    if (!current) return;
+
+    const success = await save();
+
+    if (success) {
+      say('자동 저장 완료');
+    }
   }, 1500);
 }
 
