@@ -579,13 +579,14 @@ async function loadAttachments() {
     }
 
     ydoc.transact(() => {
-      scheduleAutoSave();
       if (oldEnd > start) ytext.delete(start, oldEnd - start);
       if (newEnd > start) {
         ytext.insert(start, newText.slice(start, newEnd));
       }
     });
   };
+
+    scheduleAutoSave();
 $('title').oninput = () => {
   scheduleAutoSave();
 };
@@ -605,8 +606,7 @@ async function close() {
   $('list').classList.remove('hidden');
   render();
 }
-async function save() {
-  let autoSaveTimer;
+let autoSaveTimer;
 
 function scheduleAutoSave() {
   clearTimeout(autoSaveTimer);
@@ -618,6 +618,8 @@ function scheduleAutoSave() {
     await save();
   }, 1500);
 }
+
+async function save() {
   if (!current) return false;
 
   const payload = {
