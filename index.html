@@ -227,7 +227,7 @@ async function save(){if(!current)return false;let payload={title:$('title').val
   ...payload,
   owner_id:user.id,
   folder_id:activeFolder
-}).select().single();else res=await db.from('notes').update(payload).eq('id',current.id).select().single();if(res.error){alert('저장 실패: '+res.error.message);return false}current=res.data;current.isNew=false;notes=notes.filter(n=>n.id!==current.id);notes.unshift(current);say('저장됨');return true}
+}).select().single();else res=await db.from('notes').update(payload).eq('id',current.id).select().single();if(res.error){alert('저장 실패: '+res.error.message);return false}current=res.data;current.isNew=false;updateEditorPermissions();notes=notes.filter(n=>n.id!==current.id);notes.unshift(current);say('저장됨');return true}
 $('new').onclick=()=>{
   current={
     isNew:true,
