@@ -18,15 +18,77 @@ const SUPABASE_URL='https://wffxwivpiglheflhdnlz.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_XUW9NTYnijVTP_xI8BqdVw_viyysINu';
 const $=id=>document.getElementById(id);
 let db,user,notes=[],current=null,signup=false;
-function authView(msg=''){$('auth').classList.remove('hidden');$('workspace').classList.add('hidden');$('message').textContent=msg}
+let folders = [];
+let activeFolder = null;
+
+async function loadFolders() {
+  const { data, error } = await db
+    .from('folders')
+    .select('*')
+    .order('created_at');
+
+  if (error) {
+    alert('폴더 불러오기 실패: ' + error.message);
+    return;
+  }
+
+  folders = data || [];
+  renderFolders();
+}
+
+function renderFolders() {
+  $('folderList').innerHTML =
+    '<button class="alt" id="allFolders">전체 노트</button>' +
+    folders.map(f =>
+      `<button class="alt" data-folder="${f.id}">${safe(f.name)}</button>`
+    ).join('');
+
+  $('allFolders').onclick = () => {
+    activeFolder = null;
+    render();
+  };
+
+  document.querySelectorAll('[data-folder]').forEach(b => {
+    b.onclick = () => {
+      activeFolder = b.dataset.folder;
+      render();
+    };
+  });
+}
+
+$('addFolder').onclick = async () => {
+  const name = $('folderName').value.trim();
+  if (!name) return alert('폴더 이름을 입력해 줘.');
+
+  const { error } = await db.from('folders').insert({
+    name,
+    owner_id: user.id
+  });
+
+  if (error) return alert(error.message);
+
+  $('folderName').value = '';
+  await loadFolders();
+};function authView(msg=''){$('auth').classList.remove('hidden');$('workspace').classList.add('hidden');$('message').textContent=msg}
 function workView(){$('auth').classList.add('hidden');$('workspace').classList.remove('hidden')}
 function say(s){$('saved').textContent=s}
 function safe(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 $('switch').onclick=()=>{signup=!signup;$('authTitle').textContent=signup?'회원가입':'NOTE에 로그인';$('submit').textContent=signup?'회원가입':'로그인';$('switch').textContent=signup?'이미 계정이 있나요? 로그인':'계정이 없나요? 회원가입';$('message').textContent=''};
 $('submit').onclick=async()=>{let email=$('email').value.trim(),password=$('password').value;if(!email||password.length<6){$('message').textContent='이메일과 6자 이상의 비밀번호를 입력해 줘.';return}
 $('submit').disabled=true;try{if(signup){let {data,error}=await db.auth.signUp({email,password});if(error)throw error;if(data.session){user=data.user;workView();await load()}else $('message').textContent='가입 요청 완료! 이메일 인증 후 로그인해 줘.'}else{let {data,error}=await db.auth.signInWithPassword({email,password});if(error)throw error;user=data.user;workView();await load()}}catch(e){$('message').textContent=e.message}finally{$('submit').disabled=false}};
-async function load(){let {data,error}=await db.from('notes').select('*').order('updated_at',{ascending:false});if(error){alert('불러오기 실패: '+error.message);return}notes=data||[];render()}
-function render(){let q=$('search').value.toLowerCase(),a=notes.filter(n=>(n.title+' '+n.content).toLowerCase().includes(q));$('notes').innerHTML=a.length?a.map(n=>`<button class="note" data-id="${n.id}"><b>${safe(n.title||'제목 없는 노트')}</b><p class="muted">${safe(n.content)}</p><small class="muted">${new Date(n.updated_at).toLocaleString('ko-KR')}</small></button>`).join(''):'<p class="muted">아직 노트가 없어. 새 노트를 만들어 봐.</p>';document.querySelectorAll('.note').forEach(b=>b.onclick=()=>open(b.dataset.id))}
+async function load(){
+  let {data,error}=await db.from('notes').select('*').order('updated_at',{ascending:false});
+  if(error){alert('불러오기 실패: '+error.message);return}
+  notes=data||[];
+  await loadFolders();
+  render();
+}
+function render(){
+  let q=$('search').value.toLowerCase(),
+  a=notes.filter(n=>
+    (!activeFolder || n.folder_id===activeFolder) &&
+    (n.title+' '+n.content).toLowerCase().includes(q)
+  );$('notes').innerHTML=a.length?a.map(n=>`<button class="note" data-id="${n.id}"><b>${safe(n.title||'제목 없는 노트')}</b><p class="muted">${safe(n.content)}</p><small class="muted">${new Date(n.updated_at).toLocaleString('ko-KR')}</small></button>`).join(''):'<p class="muted">아직 노트가 없어. 새 노트를 만들어 봐.</p>';document.querySelectorAll('.note').forEach(b=>b.onclick=()=>open(b.dataset.id))}
 function open(id){current=notes.find(n=>n.id===id);$('title').value=current.title;$('content').value=current.content;$('list').classList.add('hidden');$('editor').classList.remove('hidden');say('마지막 수정: '+new Date(current.updated_at).toLocaleString('ko-KR'))}
 function close(){ $('editor').classList.add('hidden');$('list').classList.remove('hidden');render()}
 async function save(){if(!current)return false;let payload={title:$('title').value.trim(),content:$('content').value,updated_at:new Date().toISOString()},res;if(current.isNew)res=await db.from('notes').insert({...payload,owner_id:user.id}).select().single();else res=await db.from('notes').update(payload).eq('id',current.id).select().single();if(res.error){alert('저장 실패: '+res.error.message);return false}current=res.data;current.isNew=false;notes=notes.filter(n=>n.id!==current.id);notes.unshift(current);say('저장됨');return true}
