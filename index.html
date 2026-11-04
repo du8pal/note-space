@@ -609,7 +609,8 @@ async function close() {
 }
 let autoSaveTimer;
 
-function scheduleAutoSave() {
+let autoSaveTimer;
+
 function scheduleAutoSave() {
   clearTimeout(autoSaveTimer);
 
