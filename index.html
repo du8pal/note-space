@@ -18,7 +18,15 @@ body{margin:0;background:#f6f5f1;color:#242522;font:15px/1.6 system-ui,sans-seri
   <div id="folderList" class="row"></div>
 </div>
 
-<div class="row"><h1>나의 자료실</h1><div><button class="alt" id="logout">로그아웃</button><button id="new">＋ 새 노트</button></div></div>
+<div class="row">
+  <h1>나의 자료실</h1>
+  <div>
+    <input id="nickname" placeholder="내 닉네임">
+    <button class="alt" id="saveNickname">닉네임 저장</button>
+    <button class="alt" id="logout">로그아웃</button>
+    <button id="new">＋ 새 노트</button>
+  </div>
+</div>
 <div id="list"><input id="search" placeholder="노트 검색" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:9px;box-sizing:border-box;margin-bottom:14px"><div id="notes" class="notes"></div></div>
 <div id="editor" class="card hidden"><div class="row">
   <button class="alt" id="back">← 목록</button>
@@ -215,8 +223,51 @@ async function acceptInviteFromUrl() {
   activeFolder = null;
   alert('공동 편집자로 참여했어!');
 }
+async function loadProfile() {
+  const { data, error } = await db
+    .from('profiles')
+    .select('nickname')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (error) {
+    alert('닉네임 불러오기 실패: ' + error.message);
+    return;
+  }
+
+  $('nickname').value = data?.nickname || '';
+}
+
+$('saveNickname').onclick = async () => {
+  const nickname = $('nickname').value.trim();
+
+  if (!nickname) {
+    alert('닉네임을 입력해 줘!');
+    return;
+  }
+
+  if (nickname.length > 20) {
+    alert('닉네임은 20자 이하로 입력해 줘.');
+    return;
+  }
+
+  const { error } = await db
+    .from('profiles')
+    .upsert({
+      id: user.id,
+      nickname
+    });
+
+  if (error) {
+    alert('닉네임 저장 실패: ' + error.message);
+    return;
+  }
+
+  alert('닉네임 저장 완료!');
+};
   async function load(){
-    await acceptInviteFromUrl();
+  await loadProfile();
+  await acceptInviteFromUrl();
   let {data,error}=await db.from('notes').select('*').order('updated_at',{ascending:false});
   if(error){alert('불러오기 실패: '+error.message);return}
   notes=data||[];
