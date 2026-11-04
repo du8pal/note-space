@@ -584,9 +584,10 @@ async function loadAttachments() {
         ytext.insert(start, newText.slice(start, newEnd));
       }
     });
+    scheduleAutoSave();
   };
 
-    scheduleAutoSave();
+    
 $('title').oninput = () => {
   scheduleAutoSave();
 };
