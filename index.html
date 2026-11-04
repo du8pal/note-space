@@ -78,11 +78,58 @@ let onlineUsers = [];
 
 async function startPresence() {
   if (!current || current.isNew || !user) return;
-async function stopPresence() {
+
   if (presenceChannel) {
     await db.removeChannel(presenceChannel);
     presenceChannel = null;
   }
+
+  const channel = db.channel('note-presence-' + current.id);
+
+  channel
+    .on('presence', { event: 'sync' }, () => {
+      const state = channel.presenceState();
+      onlineUsers = Object.values(state).flat();
+
+      const uniqueUsers = [
+        ...new Map(
+          onlineUsers.map(person => [person.user_id, person])
+        ).values()
+      ];
+
+      $('onlineList').innerHTML = uniqueUsers.length
+        ? uniqueUsers.map(person =>
+            `<p>🟢 <b>${safe(person.nickname)}</b></p>`
+          ).join('')
+        : '현재 접속자가 없어.';
+    })
+    .on('broadcast', { event: 'y-update' }, ({ payload }) => {
+      if (!ydoc || !payload?.update) return;
+
+      Y.applyUpdate(
+        ydoc,
+        new Uint8Array(payload.update),
+        'remote'
+      );
+    })
+    .subscribe(async status => {
+      if (status === 'SUBSCRIBED') {
+        const { data } = await db
+          .from('profiles')
+          .select('nickname')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        await channel.track({
+          user_id: user.id,
+          nickname: data?.nickname || '익명',
+          online_at: new Date().toISOString()
+        });
+      }
+    });
+
+  presenceChannel = channel;
+}
 
   const channel = db.channel('note-presence-' + current.id);
 
