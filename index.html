@@ -480,7 +480,6 @@ async function loadAttachments() {
   }
 
   current = data;
-
   ydoc = new Y.Doc();
   ytext = ydoc.getText('content');
 
@@ -489,7 +488,6 @@ async function loadAttachments() {
       atob(current.yjs_state),
       c => c.charCodeAt(0)
     );
-
     Y.applyUpdate(ydoc, binary);
   } else {
     if (current.content) {
@@ -497,11 +495,7 @@ async function loadAttachments() {
     }
 
     const update = Y.encodeStateAsUpdate(ydoc);
-    let binary = '';
-
-    for (let i = 0; i < update.length; i++) {
-      binary += String.fromCharCode(update[i]);
-    }
+    const binary = Array.from(update, b => String.fromCharCode(b)).join('');
 
     const { data: initialized, error: initError } = await db
       .from('notes')
@@ -512,7 +506,7 @@ async function loadAttachments() {
       .maybeSingle();
 
     if (initError) {
-      alert('실시간 데이터 초기화 실패: ' + initError.message);
+      alert('초기화 실패: ' + initError.message);
       return;
     }
 
@@ -526,7 +520,7 @@ async function loadAttachments() {
         .single();
 
       if (latestError || !latest?.yjs_state) {
-        alert('공유 데이터를 불러오지 못했어.');
+        alert('공유 데이터 불러오기 실패');
         return;
       }
 
@@ -539,69 +533,13 @@ async function loadAttachments() {
         atob(latest.yjs_state),
         c => c.charCodeAt(0)
       );
-
       Y.applyUpdate(ydoc, latestBinary);
     }
   }
 
   $('title').value = current.title || '';
   $('content').value = ytext.toString();
-    return;
-  }
 
-  if (presenceChannel) {
-    presenceChannel.send({
-      type: 'broadcast',
-      event: 'y-update',
-      payload: {
-        update: Array.from(update)
-      }
-    });
-  }
-});
-
-$('content').oninput = () => {
-  const oldText = ytext.toString();
-  const newText = $('content').value;
-
-  let start = 0;
-
-  while (
-    start < oldText.length &&
-    start < newText.length &&
-    oldText[start] === newText[start]
-  ) {
-    start++;
-  }
-
-  let oldEnd = oldText.length;
-  let newEnd = newText.length;
-
-  while (
-    oldEnd > start &&
-    newEnd > start &&
-    oldText[oldEnd - 1] === newText[newEnd - 1]
-  ) {
-    oldEnd--;
-    newEnd--;
-  }
-
-  ydoc.transact(() => {
-    if (oldEnd > start) {
-      ytext.delete(start, oldEnd - start);
-    }
-
-    if (newEnd > start) {
-      ytext.insert(start, newText.slice(start, newEnd));
-    }
-  });
-};
-
-    $('list').classList.add('hidden');
-    $('editor').classList.remove('hidden');
-
-    say('마지막 수정: ' + new Date(current.updated_at).toLocaleString('ko-KR'));
-    }
   ydoc.on('update', (update, origin) => {
     if (origin === 'remote') {
       $('content').value = ytext.toString();
@@ -612,9 +550,7 @@ $('content').oninput = () => {
       presenceChannel.send({
         type: 'broadcast',
         event: 'y-update',
-        payload: {
-          update: Array.from(update)
-        }
+        payload: { update: Array.from(update) }
       });
     }
   });
@@ -622,7 +558,6 @@ $('content').oninput = () => {
   $('content').oninput = () => {
     const oldText = ytext.toString();
     const newText = $('content').value;
-
     let start = 0;
 
     while (
@@ -644,10 +579,7 @@ $('content').oninput = () => {
     }
 
     ydoc.transact(() => {
-      if (oldEnd > start) {
-        ytext.delete(start, oldEnd - start);
-      }
-
+      if (oldEnd > start) ytext.delete(start, oldEnd - start);
       if (newEnd > start) {
         ytext.insert(start, newText.slice(start, newEnd));
       }
