@@ -48,16 +48,68 @@ async function loadFolders() {
 }
 
 function renderFolders() {
+function renderFolders() {
   $('folderList').innerHTML =
     '<button class="alt" id="allFolders">전체 노트</button>' +
-    folders.map(f =>
-      `<button class="alt" data-folder="${f.id}">${safe(f.name)}</button>`
-    ).join('');
+    folders.map(f => `
+      <div class="row">
+        <button class="alt" data-folder="${f.id}">${safe(f.name)}</button>
+        <button class="alt" data-rename-folder="${f.id}">이름 변경</button>
+        <button class="alt" data-delete-folder="${f.id}">삭제</button>
+      </div>
+    `).join('');
 
   $('allFolders').onclick = () => {
     activeFolder = null;
     render();
   };
+
+  document.querySelectorAll('[data-folder]').forEach(b => {
+    b.onclick = () => {
+      activeFolder = b.dataset.folder;
+      render();
+    };
+  });
+
+  document.querySelectorAll('[data-rename-folder]').forEach(b => {
+    b.onclick = async () => {
+      const id = b.dataset.renameFolder;
+      const folder = folders.find(f => f.id === id);
+      const name = prompt('새 폴더 이름을 입력해 줘.', folder.name);
+
+      if (name === null) return;
+      if (!name.trim()) return alert('폴더 이름을 입력해 줘.');
+
+      const { error } = await db.from('folders')
+        .update({ name: name.trim() })
+        .eq('id', id);
+
+      if (error) return alert(error.message);
+
+      await loadFolders();
+    };
+  });
+
+  document.querySelectorAll('[data-delete-folder]').forEach(b => {
+    b.onclick = async () => {
+      const id = b.dataset.deleteFolder;
+      const folder = folders.find(f => f.id === id);
+
+      if (!confirm(`'${folder.name}' 폴더를 삭제할까? 노트는 삭제되지 않아.`)) return;
+
+      const { error } = await db.from('folders')
+        .delete()
+        .eq('id', id);
+
+      if (error) return alert(error.message);
+
+      if (activeFolder === id) activeFolder = null;
+
+      await loadFolders();
+      render();
+    };
+  });
+};
 
   document.querySelectorAll('[data-folder]').forEach(b => {
     b.onclick = () => {
