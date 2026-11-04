@@ -618,6 +618,20 @@ async function loadAttachments() {
       }
     });
     scheduleAutoSave();
+    clearTimeout(editingTimer);
+
+editingTimer = setTimeout(() => {
+  if (presenceChannel) {
+    presenceChannel.send({
+      type: 'broadcast',
+      event: 'editing-status',
+      payload: {
+        user_id: user.id,
+        isEditing: false
+      }
+    });
+  }
+}, 2000);
   };
 
     
@@ -640,6 +654,7 @@ async function close() {
   $('list').classList.remove('hidden');
   render();
 }
+  let editingTimer;
 let autoSaveTimer;
 
 function scheduleAutoSave() {
