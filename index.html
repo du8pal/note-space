@@ -138,6 +138,32 @@ async function startPresence() {
         'remote'
       );
     })
+        .on('broadcast', { event: 'cursor-position' }, ({ payload }) => {
+      if (!payload?.user_id) return;
+
+      const person = onlineUsers.find(
+        p => p.user_id === payload.user_id
+      );
+
+      if (!person) return;
+
+      const position = Number(payload.position);
+      if (!Number.isFinite(position)) return;
+
+      const item = document.getElementById(
+        'cursor-' + payload.user_id
+      );
+
+      const html = `<p id="cursor-${safe(payload.user_id)}">
+        📍 <b>${safe(person.nickname)}</b> — ${position}번째 글자 근처
+      </p>`;
+
+      if (item) {
+        item.outerHTML = html;
+      } else {
+        $('cursorList').insertAdjacentHTML('beforeend', html);
+      }
+    })
     .subscribe(async status => {
       if (status === 'SUBSCRIBED') {
         const { data } = await db
