@@ -150,9 +150,9 @@ function renderRemoteCursor(userId, nickname, position) {
 
   mirror.style.position = 'absolute';
   mirror.style.visibility = 'hidden';
-  mirror.style.height = 'auto';
-  mirror.style.minHeight = '0';
-  mirror.style.overflow = 'hidden';
+mirror.style.height = textarea.clientHeight + 'px';
+mirror.style.minHeight = '0';
+mirror.style.overflow = 'hidden';
   mirror.style.whiteSpace = 'pre-wrap';
   mirror.style.overflowWrap = 'break-word';
 
