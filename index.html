@@ -170,13 +170,14 @@ mirror.style.overflow = 'hidden';
   canvas.appendChild(mirror);
 
   const rect = marker.getBoundingClientRect();
-const textareaRect = textarea.getBoundingClientRect();
+coconst rect = marker.getBoundingClientRect();
+const canvasRect = canvas.getBoundingClientRect();
 
 cursor.style.left =
-  (rect.left - textareaRect.left - textarea.scrollLeft) + 'px';
+  (rect.left - canvasRect.left) + 'px';
 
 cursor.style.top =
-  (rect.top - textareaRect.top - textarea.scrollTop) + 'px';
+  (rect.top - canvasRect.top) + 'px';
 
   mirror.remove();
 }
