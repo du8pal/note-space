@@ -218,19 +218,19 @@ editingUserIds.forEach(id => {
     .on('broadcast', { event: 'editing-status' }, ({ payload }) => {
   if (!payload?.user_id) return;
 
-  const person = onlineUsers.find(
-    p => p.user_id === payload.user_id
+  if (payload.isEditing) {
+    editingUserIds.add(payload.user_id);
+  } else {
+    editingUserIds.delete(payload.user_id);
+  }
+
+  const editingUsers = onlineUsers.filter(
+    person => editingUserIds.has(person.user_id)
   );
 
-  if (!person) return;
-
-  person.isEditing = payload.isEditing;
-
-  const editingUsers = onlineUsers.filter(p => p.isEditing);
-
   $('editingList').innerHTML = editingUsers.length
-    ? editingUsers.map(p =>
-        `<p>✏️ <b>${safe(p.nickname)}</b> 편집 중</p>`
+    ? editingUsers.map(person =>
+        `<p>✏️ <b>${safe(person.nickname)}</b> 편집 중</p>`
       ).join('')
     : '아직 편집 중인 사람이 없어.';
 })
