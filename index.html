@@ -168,12 +168,13 @@ function renderRemoteCursor(userId, nickname, position) {
   canvas.appendChild(mirror);
 
   const rect = marker.getBoundingClientRect();
-  const canvasRect = canvas.getBoundingClientRect();
+const textareaRect = textarea.getBoundingClientRect();
 
-  cursor.style.left =
-  (rect.left - canvasRect.left - textarea.scrollLeft) + 'px';
-  cursor.style.top =
-    (rect.top - canvasRect.top - textarea.scrollTop) + 'px';
+cursor.style.left =
+  (rect.left - textareaRect.left - textarea.scrollLeft) + 'px';
+
+cursor.style.top =
+  (rect.top - textareaRect.top - textarea.scrollTop) + 'px';
 
   mirror.remove();
 }
