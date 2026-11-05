@@ -707,10 +707,22 @@ async function loadAttachments() {
   $('content').value = ytext.toString();
 
   ydoc.on('update', (update, origin) => {
-    if (origin === 'remote') {
-      $('content').value = ytext.toString();
-      return;
-    }
+  if (origin === 'remote') {
+    const textarea = $('content');
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    applyingRemote = true;
+    textarea.value = ytext.toString();
+
+    textarea.setSelectionRange(
+      Math.min(start, textarea.value.length),
+      Math.min(end, textarea.value.length)
+    );
+
+    applyingRemote = false;
+    return;
+  }
 
     if (presenceChannel) {
       presenceChannel.send({
