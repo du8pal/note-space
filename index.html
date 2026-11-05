@@ -170,7 +170,8 @@ function renderRemoteCursor(userId, nickname, position) {
   const rect = marker.getBoundingClientRect();
   const canvasRect = canvas.getBoundingClientRect();
 
-  cursor.style.left = (rect.left - canvasRect.left) + 'px';
+  cursor.style.left =
+  (rect.left - canvasRect.left - textarea.scrollLeft) + 'px';
   cursor.style.top =
     (rect.top - canvasRect.top - textarea.scrollTop) + 'px';
 
