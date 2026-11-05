@@ -673,7 +673,22 @@ editingTimer = setTimeout(() => {
 }, 2000);
   };
 
-    
+function sendCursorPosition() {
+  if (!presenceChannel) return;
+
+  presenceChannel.send({
+    type: 'broadcast',
+    event: 'cursor-position',
+    payload: {
+      user_id: user.id,
+      position: $('content').selectionStart
+    }
+  });
+}
+
+$('content').addEventListener('click', sendCursorPosition);
+$('content').addEventListener('keyup', sendCursorPosition);
+$('content').addEventListener('select', sendCursorPosition);    
 $('title').oninput = () => {
   scheduleAutoSave();
 };
