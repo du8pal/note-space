@@ -1,7 +1,13 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NOTE</title>
 <style>
-body{margin:0;background:#f6f5f1;color:#242522;font:15px/1.6 system-ui,sans-serif}.app{max-width:980px;margin:30px auto;padding:16px}.brand{font-weight:900;letter-spacing:.15em;margin-bottom:30px}.card{background:white;border:1px solid #e8e7e1;border-radius:16px;padding:24px;margin-bottom:16px}.auth{max-width:420px;margin:8vh auto}.field{margin:14px 0}.field label{display:block;font-size:13px}.field input{width:100%;padding:12px;border:1px solid #ddd;border-radius:9px;box-sizing:border-box}button{border:0;border-radius:9px;padding:10px 14px;background:#303b35;color:white;cursor:pointer;margin:4px}button.alt{background:#eef0eb;color:#242522}textarea,input{font:inherit}.hidden{display:none!important}.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.note{background:white;color:#242522;border:1px solid #e8e7e1;text-align:left;min-height:120px;width:100%}.muted{color:#85877f;font-size:13px}#title{width:100%;font-size:24px;font-weight:bold;border:0;margin:20px 0;outline:0}#content{width:100%;min-height:55vh;border:0;outline:0;resize:vertical;line-height:1.8}#editorCanvas {
+body{margin:0;background:#f6f5f1;color:#242522;font:15px/1.6 system-ui,sans-serif}.app{max-width:980px;margin:30px auto;padding:16px}.brand{font-weight:900;letter-spacing:.15em;margin-bottom:30px}.card{background:white;border:1px solid #e8e7e1;border-radius:16px;padding:24px;margin-bottom:16px}.auth{max-width:420px;margin:8vh auto}.field{margin:14px 0}.field label{display:block;font-size:13px}.field input{width:100%;padding:12px;border:1px solid #ddd;border-radius:9px;box-sizing:border-box}button{border:0;border-radius:9px;padding:10px 14px;background:#303b35;color:white;cursor:pointer;margin:4px}button.alt{background:#eef0eb;color:#242522}textarea,input{font:inherit}.hidden{display:none!important}.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.note{background:white;color:#242522;border:1px solid #e8e7e1;text-align:left;min-height:120px;width:100%}.muted{color:#85877f;font-size:13px}#title{width:100%;font-size:24px;font-weight:bold;border:0;margin:20px 0;outline:0}#content {
+  width: 100%;
+  min-height: 55vh;
+  border: 0;
+  outline: 0;
+  line-height: 1.8;
+}#editorCanvas {
   position: relative;
   width: 100%;
 }
@@ -67,7 +73,7 @@ body{margin:0;background:#f6f5f1;color:#242522;font:15px/1.6 system-ui,sans-seri
     <button id="save">저장</button>
   </div>
 </div><input id="title" placeholder="제목 없는 노트"><div id="editorCanvas">
-<textarea id="content" spellcheck="false"></textarea>
+<div id="content"></div>
   <div id="remoteCursors"></div>
 </div>
 
