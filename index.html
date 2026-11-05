@@ -194,14 +194,21 @@ async function startPresence() {
   channel
     .on('presence', { event: 'sync' }, () => {
       const state = channel.presenceState();
-      onlineUsers = Object.values(state).flat();
+onlineUsers = Object.values(state).flat();
 
-      const uniqueUsers = [
-        ...new Map(
-          onlineUsers.map(person => [person.user_id, person])
-        ).values()
-      ];
+const uniqueUsers = [
+  ...new Map(onlineUsers.map(person => [person.user_id, person])).values()
+];
 
+onlineUsers = uniqueUsers;
+
+const onlineIds = new Set(onlineUsers.map(person => person.user_id));
+
+editingUserIds.forEach(id => {
+  if (!onlineIds.has(id)) {
+    editingUserIds.delete(id);
+  }
+});
       $('onlineList').innerHTML = uniqueUsers.length
         ? uniqueUsers.map(person =>
             `<p>🟢 <b>${safe(person.nickname)}</b></p>`
