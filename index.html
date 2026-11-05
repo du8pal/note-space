@@ -121,28 +121,7 @@ let onlineUsers = [];
   let editingUserIds = new Set();
   let editor = null;
 
-  if (!ydoc) return;
-
-  editor = new Editor({
-    element: $('content'),
-    extensions: [
-      StarterKit.configure({
-        undoRedo: false
-      }),
-      Collaboration.configure({
-        document: ydoc,
-        field: 'content'
-      })
-    ],
-    content: '',
-    editorProps: {
-      attributes: {
-        class: 'note-editor',
-        spellcheck: 'false'
-      }
-    }
-  });
-}
+  
 function renderRemoteCursor(userId, nickname, position) {
   const textarea = $('content');
   const canvas = $('editorCanvas');
@@ -750,7 +729,7 @@ async function loadAttachments() {
   applyingRemote = false;
   return;
   }
-  }
+  
 
     if (presenceChannel) {
       presenceChannel.send({
