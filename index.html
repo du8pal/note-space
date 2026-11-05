@@ -116,7 +116,68 @@ let ytext = null;
 let applyingRemote = false;
   let presenceChannel = null;
 let onlineUsers = [];
+function renderRemoteCursor(userId, nickname, position) {
+  const textarea = $('content');
+  const canvas = $('editorCanvas');
+  const layer = $('remoteCursors');
 
+  if (!textarea || !canvas || !layer) return;
+
+  let cursor = document.getElementById('remote-' + userId);
+
+  if (!cursor) {
+    cursor = document.createElement('div');
+    cursor.id = 'remote-' + userId;
+    cursor.className = 'remote-cursor';
+
+    const label = document.createElement('span');
+    label.className = 'remote-cursor-label';
+    cursor.appendChild(label);
+
+    layer.appendChild(cursor);
+  }
+
+  cursor.querySelector('.remote-cursor-label').textContent = nickname;
+
+  const mirror = document.createElement('div');
+  const style = getComputedStyle(textarea);
+
+  [
+    'font', 'lineHeight', 'letterSpacing', 'textIndent',
+    'textTransform', 'padding', 'border', 'boxSizing',
+    'width', 'whiteSpace', 'wordBreak', 'tabSize'
+  ].forEach(key => {
+    mirror.style[key] = style[key];
+  });
+
+  mirror.style.position = 'absolute';
+  mirror.style.visibility = 'hidden';
+  mirror.style.height = 'auto';
+  mirror.style.minHeight = '0';
+  mirror.style.overflow = 'hidden';
+  mirror.style.whiteSpace = 'pre-wrap';
+  mirror.style.overflowWrap = 'break-word';
+
+  const text = textarea.value;
+  const index = Math.max(0, Math.min(position, text.length));
+
+  mirror.textContent = text.slice(0, index);
+
+  const marker = document.createElement('span');
+  marker.textContent = '\u200b';
+  mirror.appendChild(marker);
+
+  canvas.appendChild(mirror);
+
+  const rect = marker.getBoundingClientRect();
+  const canvasRect = canvas.getBoundingClientRect();
+
+  cursor.style.left = (rect.left - canvasRect.left) + 'px';
+  cursor.style.top =
+    (rect.top - canvasRect.top - textarea.scrollTop) + 'px';
+
+  mirror.remove();
+}
 async function startPresence() {
   if (!current || current.isNew || !user) return;
 
@@ -172,32 +233,24 @@ async function startPresence() {
         'remote'
       );
     })
-        .on('broadcast', { event: 'cursor-position' }, ({ payload }) => {
-      if (!payload?.user_id) return;
+    .on('broadcast', { event: 'cursor-position' }, ({ payload }) => {
+  if (!payload?.user_id) return;
 
-      const person = onlineUsers.find(
-        p => p.user_id === payload.user_id
-      );
+  const person = onlineUsers.find(
+    p => p.user_id === payload.user_id
+  );
 
-      if (!person) return;
+  if (!person) return;
 
-      const position = Number(payload.position);
-      if (!Number.isFinite(position)) return;
+  const position = Number(payload.position);
+  if (!Number.isFinite(position)) return;
 
-      const item = document.getElementById(
-        'cursor-' + payload.user_id
-      );
-
-      const html = `<p id="cursor-${safe(payload.user_id)}">
-        📍 <b>${safe(person.nickname)}</b> — ${position}번째 글자 근처
-      </p>`;
-
-      if (item) {
-        item.outerHTML = html;
-      } else {
-        $('cursorList').insertAdjacentHTML('beforeend', html);
-      }
-    })
+  renderRemoteCursor(
+    payload.user_id,
+    person.nickname,
+    position
+  );
+})
     .subscribe(async status => {
       if (status === 'SUBSCRIBED') {
         const { data } = await db
