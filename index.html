@@ -67,7 +67,8 @@ body{margin:0;background:#f6f5f1;color:#242522;font:15px/1.6 system-ui,sans-seri
     <button id="save">저장</button>
   </div>
 </div><input id="title" placeholder="제목 없는 노트"><div id="editorCanvas">
-  <textarea id="content" placeholder="생각이나 자료를 기록해 봐."></textarea>
+  <div id="content"></div>
+</div>
   <div id="remoteCursors"></div>
 </div>
 
@@ -120,6 +121,36 @@ let applyingRemote = false;
   let presenceChannel = null;
 let onlineUsers = [];
   let editingUserIds = new Set();
+  let editor = null;
+
+function createNoteEditor() {
+  if (editor) {
+    editor.destroy();
+    editor = null;
+  }
+
+  if (!ydoc) return;
+
+  editor = new Editor({
+    element: $('content'),
+    extensions: [
+      StarterKit.configure({
+        undoRedo: false
+      }),
+      Collaboration.configure({
+        document: ydoc,
+        field: 'content'
+      })
+    ],
+    content: '',
+    editorProps: {
+      attributes: {
+        class: 'note-editor',
+        spellcheck: 'false'
+      }
+    }
+  });
+}
 function renderRemoteCursor(userId, nickname, position) {
   const textarea = $('content');
   const canvas = $('editorCanvas');
