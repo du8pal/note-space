@@ -133,9 +133,56 @@ function renderRemoteCursor(userId, nickname, position) {
     const label = document.createElement('span');
     label.className = 'remote-cursor-label';
     cursor.appendChild(label);
-
     layer.appendChild(cursor);
   }
+
+  cursor.querySelector('.remote-cursor-label').textContent = nickname;
+
+  const style = getComputedStyle(textarea);
+  const mirror = document.createElement('div');
+
+  Object.assign(mirror.style, {
+    position: 'absolute',
+    visibility: 'hidden',
+    left: '0',
+    top: '0',
+    width: textarea.clientWidth + 'px',
+    minHeight: '0',
+    padding: style.padding,
+    border: style.border,
+    boxSizing: style.boxSizing,
+    font: style.font,
+    lineHeight: style.lineHeight,
+    letterSpacing: style.letterSpacing,
+    textIndent: style.textIndent,
+    whiteSpace: 'pre-wrap',
+    overflowWrap: 'break-word',
+    wordBreak: style.wordBreak,
+    tabSize: style.tabSize
+  });
+
+  const text = textarea.value;
+  const index = Math.max(0, Math.min(position, text.length));
+
+  mirror.textContent = text.slice(0, index);
+
+  const marker = document.createElement('span');
+  marker.textContent = '\u200b';
+  mirror.appendChild(marker);
+
+  canvas.appendChild(mirror);
+
+  const rect = marker.getBoundingClientRect();
+  const canvasRect = canvas.getBoundingClientRect();
+
+  cursor.style.left =
+    (rect.left - canvasRect.left) + 'px';
+
+  cursor.style.top =
+    (rect.top - canvasRect.top - textarea.scrollTop) + 'px';
+
+  mirror.remove();
+}
 
   cursor.querySelector('.remote-cursor-label').textContent = nickname;
 
