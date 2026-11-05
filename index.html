@@ -621,6 +621,16 @@ async function loadAttachments() {
       }
     });
     scheduleAutoSave();
+    if (presenceChannel) {
+  presenceChannel.send({
+    type: 'broadcast',
+    event: 'cursor-position',
+    payload: {
+      user_id: user.id,
+      position: $('content').selectionStart
+    }
+  });
+    }
     clearTimeout(editingTimer);
 
 editingTimer = setTimeout(() => {
