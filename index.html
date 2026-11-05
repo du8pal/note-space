@@ -688,7 +688,9 @@ function sendCursorPosition() {
 
 $('content').addEventListener('click', sendCursorPosition);
 $('content').addEventListener('keyup', sendCursorPosition);
-$('content').addEventListener('select', sendCursorPosition);    
+$('content').addEventListener('select', sendCursorPosition);
+$('content').addEventListener('mouseup', sendCursorPosition);
+$('content').addEventListener('touchend', sendCursorPosition);    
 $('title').oninput = () => {
   scheduleAutoSave();
 };
