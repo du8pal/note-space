@@ -106,10 +106,7 @@ body{margin:0;background:#f6f5f1;color:#242522;font:15px/1.6 system-ui,sans-seri
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
   import * as Y from 'https://esm.sh/yjs@13.6.27';
-  import { Editor } from 'https://esm.sh/@tiptap/core@3.32.0';
-import StarterKit from 'https://esm.sh/@tiptap/starter-kit@3.32.0';
-import CollaborationCaret from 'https://esm.sh/@tiptap/extension-collaboration-caret@3.32.0';
-  import { Awareness, encodeAwarenessUpdate, applyAwarenessUpdate } from 'https://esm.sh/y-protocols@1.0.6/awareness';
+  
 // 아래 두 값만 본인의 Supabase 프로젝트 값으로 바꾸세요.
 const SUPABASE_URL='https://wffxwivpiglheflhdnlz.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_XUW9NTYnijVTP_xI8BqdVw_viyysINu';
@@ -123,12 +120,6 @@ let applyingRemote = false;
 let onlineUsers = [];
   let editingUserIds = new Set();
   let editor = null;
-
-function createNoteEditor() {
-  if (editor) {
-    editor.destroy();
-    editor = null;
-  }
 
   if (!ydoc) return;
 
@@ -743,20 +734,22 @@ async function loadAttachments() {
 
   ydoc.on('update', (update, origin) => {
   if (origin === 'remote') {
-    const textarea = $('content');
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
+  const textarea = $('content');
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
 
-    applyingRemote = true;
-    textarea.value = ytext.toString();
+  applyingRemote = true;
+  textarea.value = ytext.toString();
+  lastText = textarea.value;
 
-    textarea.setSelectionRange(
-      Math.min(start, textarea.value.length),
-      Math.min(end, textarea.value.length)
-    );
+  textarea.setSelectionRange(
+    Math.min(start, textarea.value.length),
+    Math.min(end, textarea.value.length)
+  );
 
-    applyingRemote = false;
-    return;
+  applyingRemote = false;
+  return;
+  }
   }
 
     if (presenceChannel) {
@@ -768,72 +761,55 @@ async function loadAttachments() {
     }
   });
 
-  $('content').oninput = () => {
-    if (presenceChannel) {
-  presenceChannel.send({
-    type: 'broadcast',
-    event: 'editing-status',
-    payload: {
-      user_id: user.id,
-      isEditing: true
+let lastText = ytext.toString();
+
+$('content').oninput = () => {
+  const textarea = $('content');
+  const oldText = lastText;
+  const newText = textarea.value;
+
+  let start = 0;
+  while (
+    start < oldText.length &&
+    start < newText.length &&
+    oldText[start] === newText[start]
+  ) start++;
+
+  let oldEnd = oldText.length;
+  let newEnd = newText.length;
+
+  while (
+    oldEnd > start &&
+    newEnd > start &&
+    oldText[oldEnd - 1] === newText[newEnd - 1]
+  ) {
+    oldEnd--;
+    newEnd--;
+  }
+
+  ydoc.transact(() => {
+    if (oldEnd > start) {
+      ytext.delete(start, oldEnd - start);
+    }
+    if (newEnd > start) {
+      ytext.insert(start, newText.slice(start, newEnd));
     }
   });
-    }
-    const oldText = ytext.toString();
-    const newText = $('content').value;
-    let start = 0;
 
-    while (
-      start < oldText.length &&
-      start < newText.length &&
-      oldText[start] === newText[start]
-    ) start++;
+  lastText = newText;
+  scheduleAutoSave();
 
-    let oldEnd = oldText.length;
-    let newEnd = newText.length;
-
-    while (
-      oldEnd > start &&
-      newEnd > start &&
-      oldText[oldEnd - 1] === newText[newEnd - 1]
-    ) {
-      oldEnd--;
-      newEnd--;
-    }
-
-    ydoc.transact(() => {
-      if (oldEnd > start) ytext.delete(start, oldEnd - start);
-      if (newEnd > start) {
-        ytext.insert(start, newText.slice(start, newEnd));
-      }
-    });
-    scheduleAutoSave();
-    if (presenceChannel) {
-  presenceChannel.send({
-    type: 'broadcast',
-    event: 'cursor-position',
-    payload: {
-      user_id: user.id,
-      position: $('content').selectionStart
-    }
-  });
-    }
-    clearTimeout(editingTimer);
-
-editingTimer = setTimeout(() => {
   if (presenceChannel) {
     presenceChannel.send({
       type: 'broadcast',
-      event: 'editing-status',
+      event: 'cursor-position',
       payload: {
         user_id: user.id,
-        isEditing: false
+        position: textarea.selectionStart
       }
     });
   }
-}, 2000);
-  };
-
+};
 function sendCursorPosition() {
   if (!presenceChannel) return;
 
