@@ -273,7 +273,6 @@ async function startPresence() {
 }
 
 async function stopPresence() {
-async function stopPresence() {
   if (presenceChannel) {
     await db.removeChannel(presenceChannel);
     presenceChannel = null;
