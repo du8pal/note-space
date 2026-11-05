@@ -116,6 +116,7 @@ let ytext = null;
 let applyingRemote = false;
   let presenceChannel = null;
 let onlineUsers = [];
+  let editingUserIds = new Set();
 function renderRemoteCursor(userId, nickname, position) {
   const textarea = $('content');
   const canvas = $('editorCanvas');
