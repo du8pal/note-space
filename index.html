@@ -209,6 +209,15 @@ editingUserIds.forEach(id => {
     editingUserIds.delete(id);
   }
 });
+      const editingUsers = onlineUsers.filter(
+  person => editingUserIds.has(person.user_id)
+);
+
+$('editingList').innerHTML = editingUsers.length
+  ? editingUsers.map(person =>
+      `<p>✏️ <b>${safe(person.nickname)}</b> 편집 중</p>`
+    ).join('')
+  : '아직 편집 중인 사람이 없어.';
       $('onlineList').innerHTML = uniqueUsers.length
         ? uniqueUsers.map(person =>
             `<p>🟢 <b>${safe(person.nickname)}</b></p>`
