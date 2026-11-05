@@ -504,7 +504,13 @@ $('saveNickname').onclick = async () => {
     alert('닉네임 저장 실패: ' + error.message);
     return;
   }
-
+if (presenceChannel) {
+  await presenceChannel.track({
+    user_id: user.id,
+    nickname,
+    online_at: new Date().toISOString()
+  });
+}
   alert('닉네임 저장 완료!');
 };
   async function load(){
