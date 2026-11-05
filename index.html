@@ -254,6 +254,7 @@ $('editingList').innerHTML = editingUsers.length
     })
     .on('broadcast', { event: 'cursor-position' }, ({ payload }) => {
   if (!payload?.user_id) return;
+        if (payload.user_id === user.id) return;
 
   const person = onlineUsers.find(
     p => p.user_id === payload.user_id
