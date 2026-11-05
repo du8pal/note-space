@@ -273,6 +273,7 @@ async function startPresence() {
 }
 
 async function stopPresence() {
+async function stopPresence() {
   if (presenceChannel) {
     await db.removeChannel(presenceChannel);
     presenceChannel = null;
@@ -281,8 +282,9 @@ async function stopPresence() {
   onlineUsers = [];
 
   $('onlineList').textContent = '노트를 열면 접속자가 표시돼.';
+  $('editingList').textContent = '아직 편집 중인 사람이 없어.';
+  $('remoteCursors').innerHTML = '';
 }
-
 let folders = [];
 let activeFolder = null;
 
